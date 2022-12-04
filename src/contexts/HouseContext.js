@@ -1,19 +1,20 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from "react";
 
-// import data
-import { housesData } from '../data';
+// DATA
+import { housesData } from "../data";
 
-// create context
+// CREATE CONTEXT
 export const HouseContext = createContext();
 
-// provider
+// PROVIDER
 const HouseContextProvider = ({ children }) => {
   const [houses, setHouses] = useState(housesData);
-  const [country, setCountry] = useState('Location (any)');
+  const [country, setCountry] = useState("Location (any)");
   const [countries, setCountries] = useState([]);
-  const [property, setProperty] = useState('Property type (any)');
+  const [property, setProperty] = useState("Property type (any)");
   const [properties, setProperties] = useState([]);
-  const [price, setPrice] = useState('Price range (any)');
+  const [price, setPrice] = useState("Price range (any)");
+  const [rentByDate, setRentByDate] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -21,10 +22,8 @@ const HouseContextProvider = ({ children }) => {
     const allCountries = houses.map((house) => {
       return house.country;
     });
-
     // remove duplicates
-    const uniqueCountries = ['Location (any)', ...new Set(allCountries)];
-
+    const uniqueCountries = ["Location (any)", ...new Set(allCountries)];
     // set countries state
     setCountries(uniqueCountries);
   }, []);
@@ -34,10 +33,8 @@ const HouseContextProvider = ({ children }) => {
     const allProperties = houses.map((house) => {
       return house.type;
     });
-
     // remove duplicates
-    const uniqueProperties = ['Property type (any)', ...new Set(allProperties)];
-
+    const uniqueProperties = ["Property type (any)", ...new Set(allProperties)];
     // set countries state
     setProperties(uniqueProperties);
   }, []);
@@ -46,33 +43,53 @@ const HouseContextProvider = ({ children }) => {
     setLoading(true);
     // check the string if includes '(any)'
     const isDefault = (str) => {
-      return str.split(' ').includes('(any)');
+      return str.split(" ").includes("(any)");
     };
 
     // get first string (price) and parse it to number
-    const minPrice = parseInt(price.split(' ')[0]);
+    const minPrice = parseInt(price.split(" ")[0]);
     // get last string (price) and parse it to number
-    const maxPrice = parseInt(price.split(' ')[2]);
-
+    const maxPrice = parseInt(price.split(" ")[2]);
     const newHouses = housesData.filter((house) => {
       const housePrice = parseInt(house.price);
+
       // all values are selected
       if (
         house.country === country &&
         house.type === property &&
         housePrice >= minPrice &&
-        housePrice <= maxPrice
+        housePrice <= maxPrice &&
+        new Date(rentByDate).getTime() >= new Date(house.moveInBy).getTime()
       ) {
         return house;
       }
+
       // all values are default
-      if (isDefault(country) && isDefault(property) && isDefault(price)) {
+      if (
+        isDefault(country) &&
+        isDefault(property) &&
+        isDefault(price) &&
+        rentByDate === null
+      ) {
         return house;
       }
       // country is not default
       if (!isDefault(country) && isDefault(property) && isDefault(price)) {
         return house.country === country;
       }
+
+      // date is not default
+      if (
+        rentByDate !== null &&
+        isDefault(country) &&
+        isDefault(property) &&
+        isDefault(price)
+      ) {
+        return (
+          new Date(rentByDate).getTime() <= new Date(house.moveInBy).getTime()
+        );
+      }
+
       // property is not default
       if (!isDefault(property) && isDefault(country) && isDefault(price)) {
         return house.type === property;
@@ -100,7 +117,7 @@ const HouseContextProvider = ({ children }) => {
         }
       }
     });
-    
+
     setTimeout(() => {
       return (
         newHouses.length < 1 ? setHouses([]) : setHouses(newHouses),
@@ -114,6 +131,8 @@ const HouseContextProvider = ({ children }) => {
       value={{
         country,
         setCountry,
+        rentByDate,
+        setRentByDate,
         countries,
         property,
         setProperty,
